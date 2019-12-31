@@ -2,7 +2,7 @@ import gym
 import copy
 import time
 import numpy as np
-import multiprocessing as mp
+# import multiprocessing as mp
 
 GameName = 'FetchReach-v1'
 SIGMA = 1
@@ -15,7 +15,7 @@ class Env(object):
         self.name = name
         self.f = gym.make(name)
         self.n_in = self.f.observation_space['observation'].shape[0] + \
-                        self.f.observation_space['desired_goal'].shape[0]
+            self.f.observation_space['desired_goal'].shape[0]
         self.n_out = self.f.action_space.shape[0] - 1
 
         self.max_step = max_step
@@ -37,7 +37,7 @@ class Env(object):
         self.f.close()
 
     @staticmethod
-    def evaluate(env, nn, n_id=None, seed=None):
+    def evaluate(nn, n_id=None, seed=None):
         nnn = copy.deepcopy(nn)
         if seed is not None:
             np.random.seed(seed)
@@ -69,7 +69,8 @@ class NeuralNetwork(object):
         self.v = np.zeros_like(self.layer)
         self.lr, self.mom = 0.05, 0.9
 
-    def sigmoid(self, x):
+    @staticmethod
+    def sigmoid(x):
         return 1 / (1 + np.exp(-x))
 
     def reshape(self):
@@ -108,7 +109,7 @@ class NeuralNetwork(object):
         np.save("nn.npy", [self.shape, self.layer])
 
     def load(self):
-        [self.shape, self.layer] = np.load("nn.npy")
+        [self.shape, self.layer] = np.load("nn.npy", allow_pickle=True)
 
 
 class ES(object):
@@ -117,16 +118,18 @@ class ES(object):
 
     def __init__(self, popsize):
         self.popsize = popsize
-        self.population = np.random.randint(1, 2 ** 32 - 1, size=int(self.popsize / 2)).repeat(2)
+        self.population = np.zeros(popsize)
 
         rank = np.arange(1, self.popsize + 1)
         temp = np.maximum(0, np.log(self.popsize / 2 + 1) - np.log(rank))
         self.w = temp / temp.sum() - 1 / self.popsize
 
-    def evolution_sp(self, nn, env):
+    def evolution_sp(self, nn):
+        self.population = np.random.randint(1, 2 ** 32 - 1, size=int(self.popsize / 2)).repeat(2)
+
         reward = []
         for i in range(self.popsize):
-            re = Env.evaluate(env, nn, i, self.population[i])
+            re = Env.evaluate(nn, i, self.population[i])
             reward = np.append(reward, re)
         rank = np.argsort(reward)[::-1]
 
@@ -159,27 +162,30 @@ class ES(object):
 
 
 def learning():
-    env = Env(GameName, 10000, 0)
     net = NeuralNetwork(env.n_in, 30, env.n_out)
+    es = ES(POPSIZE)
 
-    net_cr = None
     for gen in range(MAXGEN):
         ts = time.time()
-        es = ES(POPSIZE)
-        net_ar = es.evolution_sp(net, env)
+        net_ar = es.evolution_sp(net)
         te = time.time()
         print('Gen: ', gen,
               ' net_ar: %.3f' % net_ar,
               ' t: %.3f' % (te - ts))
         if net_ar > env.max_reward:
             break
-
     net.save()
+
+
+def show():
+    net = NeuralNetwork(env.n_in, 30, env.n_out)
+    net.load()
     env.show(net)
 
 
 if __name__ == "__main__":
-    learning()
+    env = Env(GameName, 10000, 0)
+    # learning()
     show()
 
 
