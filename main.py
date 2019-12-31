@@ -109,7 +109,7 @@ class NeuralNetwork(object):
         np.save("nn.npy", [self.shape, self.layer])
 
     def load(self):
-        [self.shape, self.layer] = np.load("nn.npy")
+        [self.shape, self.layer] = np.load("nn.npy", allow_pickle=True)
 
 
 class ES(object):
@@ -162,6 +162,9 @@ class ES(object):
 
 
 def learning():
+    net = NeuralNetwork(env.n_in, 30, env.n_out)
+    es = ES(POPSIZE)
+
     for gen in range(MAXGEN):
         ts = time.time()
         net_ar = es.evolution_sp(net)
@@ -175,13 +178,14 @@ def learning():
 
 
 def show():
+    net = NeuralNetwork(env.n_in, 30, env.n_out)
+    net.load()
     env.show(net)
 
 
 if __name__ == "__main__":
     env = Env(GameName, 10000, 0)
-    net = NeuralNetwork(env.n_in, 30, env.n_out)
-    es = ES(POPSIZE)
-
-    learning()
+    # learning()
     show()
+
+
