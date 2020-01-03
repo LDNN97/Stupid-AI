@@ -6,16 +6,17 @@ import numpy as np
 
 GameName = 'FetchReach-v1'
 SIGMA = 1
-POPSIZE = 30
-MAXGEN = 100
+POPSIZE = 50
+MAXGEN = 10
 
 
 class Env(object):
     def __init__(self, name, max_step, max_reward):
         self.name = name
         self.f = gym.make(name)
-        self.n_in = self.f.observation_space['observation'].shape[0] + \
-            self.f.observation_space['desired_goal'].shape[0]
+        # self.n_in = self.f.observation_space['observation'].shape[0] + \
+        #     self.f.observation_space['desired_goal'].shape[0]
+        self.n_in = 6
         self.n_out = self.f.action_space.shape[0] - 1
 
         self.max_step = max_step
@@ -23,13 +24,13 @@ class Env(object):
 
     def show(self, nn):
         s = self.f.reset()
-        s = np.append(s['observation'], s['desired_goal'])
+        s = np.append(s['observation'][:3], s['desired_goal'])
         done = False
         while not done:
             a = nn.get_action(s)
             s, _, done, _ = self.f.step(a)
             self.f.render()
-            s = np.append(s['observation'], s['desired_goal'])
+            s = np.append(s['observation'][:3], s['desired_goal'])
             if done:
                 break
             print(done)
@@ -44,12 +45,15 @@ class Env(object):
             noise = ES.mirror(n_id) * SIGMA * np.random.randn(len(nn.layer))
             nnn.modify_params(noise)
         s = env.f.reset()
-        s = np.append(s['observation'], s['desired_goal'])
+        s = np.append(s['observation'][:3], s['desired_goal'])
         reward = 0
         for step in range(env.max_step):
+            print("old state", s)
             a = nnn.get_action(s)
+            print("action", a)
             s, r, done, _ = env.f.step(a)
-            s = np.append(s['observation'], s['desired_goal'])
+            s = np.append(s['observation'][:3], s['desired_goal'])
+            print("new state", s)
             reward += r
             if done:
                 break
@@ -185,7 +189,7 @@ def show():
 
 if __name__ == "__main__":
     env = Env(GameName, 10000, 0)
-    # learning()
+    learning()
     show()
 
 
